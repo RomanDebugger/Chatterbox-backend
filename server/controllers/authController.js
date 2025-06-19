@@ -10,42 +10,42 @@ export const signup = async (req, res) => {
   try {
     let { username, password } = req.body;
 
-    // 🔒 Sanitize username input
+    //Sanitize username input
     username = username?.trim().toLowerCase();
 
-    // 🔍 Validate username format
+    //Validate username format
     if (!USERNAME_REGEX.test(username)) {
       return res.status(400).json({
-        error: 'Username must be 3-20 characters, lowercase, and only contain letters, numbers, underscores.'
+        error: 'Username must be 3-20 characters, and only contain letters, numbers, underscores.'
       });
     }
 
-    // 🚫 Reserved usernames
+    //Reserved usernames
     if (reservedUsernames.includes(username)) {
       return res.status(400).json({ error: 'This username is not allowed.' });
     }
 
-    // 🔐 Password minimum length check
+    //Password minimum length check
     if (!password || password.length < 6) {
       return res.status(400).json({ error: 'Password must be at least 6 characters long.' });
     }
 
-    // 🧍 Check if username already exists
+    //Check if username already exists
     const existing = await User.findOne({ username });
     if (existing) {
       return res.status(400).json({ error: 'Username already exists.' });
     }
 
-    // 🔐 Hash password
+    // Hash password
     const hashed = await hashPassword(password);
 
-    // ✅ Create new user in DB
+    // Create new user in DB
     const user = await User.create({ username, password: hashed });
 
-    // 🔐 Generate JWT
+    // Generate JWT
     const token = generateToken(user._id);
 
-    // 🎉 Send response
+    // Send response
     res.status(201).json({
       message: 'Signup successful',
       user: {
