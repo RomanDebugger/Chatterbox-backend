@@ -78,6 +78,7 @@ export const socketInit = (io) => {
         ...msg.toObject(),
         sender: { _id: socket.userId },
       });
+      
 
       console.log(`${socket.userId} → ${roomId}: ${content}`);
     });
@@ -85,14 +86,15 @@ export const socketInit = (io) => {
     // Handle message delivery status
     socket.on('message-delivered', async ({ messageId }) => {
       if (!messageId) return;
-      await Message.findByIdAndUpdate(messageId, { delivered: true });
+      await Message.findByIdAndUpdate(messageId, { $addToSet: { deliveredTo: socket.userId } });
+      socket.emit('message-status-updated', { messageId, type: 'delivered' });
     });
 
     // Handle message seen status
     socket.on('message-seen', async ({ messageId }) => {
       if (!messageId) return;
-      await Message.findByIdAndUpdate(messageId, { seen: true });
-      socket.broadcast.emit('message-seen-update', { messageId });
+      await Message.findByIdAndUpdate(messageId, {  $addToSet: { seenBy: socket.userId } });
+      socket.broadcast.emit('message-seen-update', { messageId, userId: socket.userId, type: 'seen' });
     });
 
     // Typing indicator

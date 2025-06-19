@@ -16,13 +16,15 @@ const messageSchema = new mongoose.Schema({
     required: true,
     trim: true,
   },
-  delivered: {
-    type: Boolean,
-    default: false,
+  deliveredTo: {
+    type: [mongoose.Schema.Types.ObjectId],
+    ref : 'User',
+    default : []
   },
-  seen: {
-    type: Boolean,
-    default: false,
+  seenBy: {
+    type: [mongoose.Schema.Types.ObjectId],
+    ref: 'User',
+    default : []
   },
   system: {
     type: Boolean,

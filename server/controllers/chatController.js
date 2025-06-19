@@ -66,7 +66,9 @@ export const sendMessage = async (req, res) => {
     const message = await Message.create({
       room: roomId,
       sender: req.user,
-      content
+      content,
+      deliveredTo : [],
+      seenBy : []
     });
 
     res.status(201).json({ message });
@@ -86,9 +88,16 @@ export const getRoomMessages = async (req, res) => {
 
     const messages = await Message.find({ room: roomId })
       .sort('createdAt')
-      .populate('sender', 'username');  
+      .populate('sender', 'username')
+      .lean();
+      
+    const enriched = messages.map(msg => ({
+      ...msg,
+      delivered: Array.isArray(msg.deliveredTo) && msg.deliveredTo.includes(req.user),
+      seen: Array.isArray(msg.seenBy) && msg.seenBy.includes(req.user),
+    })); 
 
-    res.status(200).json({ messages });
+    res.status(200).json({ messages: enriched });
 
   } catch (err) {
     console.error('Fetch messages error:', err.message);
