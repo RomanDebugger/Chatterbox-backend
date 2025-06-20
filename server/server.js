@@ -6,8 +6,7 @@ import cors from 'cors';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
-import rateLimit from 'express-rate-limit'; 
-import mongoSanitize from 'express-mongo-sanitize';
+import rateLimit from 'express-rate-limit';
 import { Server } from 'socket.io';
 
 import { config } from './config.js';
@@ -27,15 +26,18 @@ const server = http.createServer(app);
 
 
 //middleware setup
+app.use(helmet());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+
 app.use(cors({
     origin: 'http://localhost:3000',
     credentials: true,
 }));
-app.use(express.json());
-app.use(morgan('dev'));
 app.use(cookieParser());
-app.use(helmet());
-app.use(mongoSanitize());
+app.use(morgan('dev'));
+
+
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100, 
@@ -45,10 +47,7 @@ const apiLimiter = rateLimit({
 app.use('/api/', apiLimiter);
 
 //Db connnections
-mongoose.connect(config.mongoURI,{
-    useNewUrlParser : true,
-    useUnifiedTopology : true 
-})
+mongoose.connect(config.mongoURI)
   .then(()=>{console.log('MongoDB connected')})
   .catch(err => console.error('MongoDB connection error:', err.message));
 

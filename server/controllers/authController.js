@@ -1,51 +1,54 @@
 import User from '../models/Users.js';
 import { hashPassword, comparePassword } from '../utils/hash.js';
 import { generateToken } from '../utils/jwt.js';
+import mongoose from 'mongoose';
 
-// Only allow lowercase usernames with numbers and underscores, 3-20 chars
 const USERNAME_REGEX = /^[a-z0-9_]{3,20}$/;
 const reservedUsernames = ['admin', 'root', 'null', 'undefined'];
 
 export const signup = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  
   try {
     let { username, password } = req.body;
 
-    //Sanitize username input
+    // Validation
     username = username?.trim().toLowerCase();
-
-    //Validate username format
+    
     if (!USERNAME_REGEX.test(username)) {
       return res.status(400).json({
-        error: 'Username must be 3-20 characters, and only contain letters, numbers, underscores.'
+        error: 'Username must be 3-20 lowercase letters, numbers, or underscores'
       });
     }
 
-    //Reserved usernames
     if (reservedUsernames.includes(username)) {
-      return res.status(400).json({ error: 'This username is not allowed.' });
+      return res.status(400).json({ error: 'Username not allowed' });
     }
 
-    //Password minimum length check
     if (!password || password.length < 6) {
-      return res.status(400).json({ error: 'Password must be at least 6 characters long.' });
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
     }
 
-    //Check if username already exists
-    const existing = await User.findOne({ username });
+    // Check existing user in transaction
+    const existing = await User.findOne({ username }).session(session);
     if (existing) {
-      return res.status(400).json({ error: 'Username already exists.' });
+      await session.abortTransaction();
+      return res.status(400).json({ error: 'Username exists' });
     }
 
-    // Hash password
+    // Create user
     const hashed = await hashPassword(password);
+    const [user] = await User.create([{
+      username,
+      password: hashed
+    }], { session });
 
-    // Create new user in DB
-    const user = await User.create({ username, password: hashed });
-
-    // Generate JWT
+    // Generate token
     const token = generateToken(user._id);
 
-    // Send response
+    await session.commitTransaction();
+    
     res.status(201).json({
       message: 'Signup successful',
       user: {
@@ -57,46 +60,50 @@ export const signup = async (req, res) => {
     });
 
   } catch (err) {
-    console.error('Signup error:', err.message);
+    await session.abortTransaction();
+    console.error('Signup error:', err);
     res.status(500).json({ error: 'Server error during signup' });
+  } finally {
+    session.endSession();
   }
 };
 
 export const login = async (req, res) => {
   try {
     let { username, password } = req.body;
-
-    // 🔒 Sanitize username
     username = username?.trim().toLowerCase();
 
-    // 🔍 Look up user
-    const user = await User.findOne({ username });
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+    // Find user with active session check
+    const user = await User.findOne({ username })
+      .select('+password +active')
+      .exec();
+
+    if (!user || !user.active) {
+      return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // 🔐 Validate password
+    // Compare passwords
     const match = await comparePassword(password, user.password);
     if (!match) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // 🔐 Issue token
+    // Generate token with device info
     const token = generateToken(user._id);
 
-    // 🎉 Respond
+    // Omit sensitive data
+    const userData = user.toObject();
+    delete userData.password;
+    delete userData.active;
+
     res.status(200).json({
       message: 'Login successful',
-      user: {
-        id: user._id,
-        username: user.username,
-        createdAt: user.createdAt
-      },
+      user: userData,
       token
     });
 
   } catch (err) {
-    console.error('Login error:', err.message);
+    console.error('Login error:', err);
     res.status(500).json({ error: 'Server error during login' });
   }
 };

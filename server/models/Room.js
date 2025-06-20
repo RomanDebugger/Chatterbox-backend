@@ -26,4 +26,16 @@ const roomSchema = new mongoose.Schema({
   },
 }, { timestamps: true });
 
+roomSchema.pre('validate', function (next) {
+  if (this.participants.length > 2 && this.type !== 'group') {
+    this.type = 'group';
+  }
+  if (this.type === 'group' && !this.name) {
+    this.name = 'Chat Group';
+  }
+
+  next();
+});
+
+
 export default mongoose.model('Room', roomSchema);

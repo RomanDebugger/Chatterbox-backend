@@ -7,10 +7,15 @@ const userSchema = new mongoose.Schema({
     unique: true,
     trim: true,
     lowercase: true,
+    index: true ,
   },
   password: {
     type: String,
     required: true,
+  },
+  active: {
+    type: Boolean,
+    default: true,  
   },
 }, { timestamps: true });
 

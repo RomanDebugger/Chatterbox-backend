@@ -8,10 +8,9 @@ export const socketInit = (io) => {
   io.use((socket, next) => {
     const token = socket.handshake.auth?.token;
     if (!token) return next(new Error('No token provided'));
-
     try {
       const decoded = jwt.verify(token, config.jwtSecret);
-      socket.userId = decoded.id; 
+      socket.userId = decoded.id;
       next();
     } catch (err) {
       next(new Error('Invalid token'));
@@ -21,80 +20,130 @@ export const socketInit = (io) => {
   io.on('connection', (socket) => {
     console.log(`Connected: ${socket.userId} (${socket.id})`);
 
-    // Join a room (private or group)
+    const userMessageCount = new Map();
+
+    // Join room
     socket.on('join-room', async (roomId) => {
-      const room = await Room.findById(roomId);
-      if (!room || !room.participants.includes(socket.userId)) {
-        return socket.emit('error', { message: 'Unauthorized room access' });
-      }
+      try {
+        const room = await Room.findById(roomId);
+        if (!room || !room.participants.some((p) => p.toString() === socket.userId)) {
+          return socket.emit('error', { message: 'Unauthorized room access' });
+        }
 
-      socket.join(roomId);
-      console.log(`${socket.userId} joined room ${roomId}`);
+        socket.join(roomId);
+        console.log(`${socket.userId} joined room ${roomId}`);
 
-      // Send system message if it's a group
-      if (room.type === 'group') {
-        const sysMsg = await Message.create({
-          room: roomId,
-          content: `User ${socket.userId} joined the group.`,
-          system: true,
-        });
-
-        io.to(roomId).emit('receive-message', {
-          ...sysMsg.toObject(),
-          sender: { _id: null, username: 'System' },
-        });
+        if (room.type === 'group') {
+          const sysMsg = await Message.create({
+            room: roomId,
+            content: `User ${socket.userId} joined the group.`,
+            system: true,
+          });
+          io.to(roomId).emit('receive-message', {
+            ...sysMsg.toObject(),
+            sender: { _id: null, username: 'System' },
+          });
+        }
+      } catch (error) {
+        console.error(error);
+        socket.emit('error', { message: 'Error joining room' });
       }
     });
-     
+
     // Handle new message
-    const userMessageCount = new Map();
     socket.on('send-message', async ({ roomId, content }) => {
       if (!roomId || !content) return;
+
       const now = Date.now();
-      const limit = 5; 
+      const limit = 5;
       const interval = 5000;
 
       const history = userMessageCount.get(socket.userId) || [];
-      const recent = history.filter(ts => now - ts < interval);
+      const recent = history.filter((ts) => now - ts < interval);
 
       if (recent.length >= limit) {
-      return socket.emit('error', { message: 'Too many messages. Slow down.' });
+        return socket.emit('error', { message: 'Too many messages. Slow down.' });
       }
 
       userMessageCount.set(socket.userId, [...recent, now]);
-  
-      const room = await Room.findById(roomId);
-      if (!room || !room.participants.includes(socket.userId)) {
-        return socket.emit('error', { message: 'Unauthorized to send to this room' });
+
+      try {
+        const room = await Room.findById(roomId);
+        if (!room || !room.participants.some((p) => p.toString() === socket.userId)) {
+          return socket.emit('error', { message: 'Unauthorized to send to this room' });
+        }
+
+        const msg = await Message.create({
+          room: roomId,
+          sender: socket.userId,
+          content,
+        });
+        io.to(roomId).emit('receive-message', {
+          ...msg.toObject(),
+          sender: { _id: socket.userId },
+        });
+        console.log(`${socket.userId} → ${roomId}: ${content}`);
+      } catch (error) {
+        console.error(error);
+        socket.emit('error', { message: 'Error sending message' });
       }
-
-      const msg = await Message.create({
-        room: roomId,
-        sender: socket.userId,
-        content,
-      });
-
-      io.to(roomId).emit('receive-message', {
-        ...msg.toObject(),
-        sender: { _id: socket.userId },
-      });
-      
-
-      console.log(`${socket.userId} → ${roomId}: ${content}`);
     });
 
-    // Handle message delivery status
+    // Delivery status
     socket.on('message-delivered', async ({ messageId }) => {
-      if (!messageId) return;
-      await Message.findByIdAndUpdate(messageId, { $addToSet: { deliveredTo: socket.userId } });
-      socket.emit('message-status-updated', { messageId, type: 'delivered' });
+    if (!messageId) return;
+
+    try {
+    const message = await Message.findById(messageId);
+    if (!message) {
+      return socket.emit('error', { message: 'Message not found' });
+    }
+
+    const room = await Room.findById(message.room);
+    if (!room?.participants.some((p) => p.toString() === socket.userId)) {
+      return socket.emit('error', { message: 'Unauthorized' });
+    }
+
+    await Message.findByIdAndUpdate(messageId, {
+      $addToSet: { deliveredTo: socket.userId },
+    });
+    socket.emit('message-status-updated', {
+      messageId,
+      type: 'delivered',
+    });
+    } catch (error) {
+    console.error(error);
+    socket.emit('error', { message: 'Error updating delivery status' });
+    }
     });
 
-    // Handle message seen status
+    // Seen status
     socket.on('message-seen', async ({ messageId }) => {
-      if (!messageId) return;
-      await Message.findByIdAndUpdate(messageId, {  $addToSet: { seenBy: socket.userId } });
-      socket.broadcast.emit('message-seen-update', { messageId, userId: socket.userId, type: 'seen' });
+    if (!messageId) return;
+
+    try {
+    const message = await Message.findById(messageId);
+    if (!message) {
+      return socket.emit('error', { message: 'Message not found' });
+    }
+
+    const room = await Room.findById(message.room);
+    if (!room?.participants.some((p) => p.toString() === socket.userId)) {
+      return socket.emit('error', { message: 'Unauthorized' });
+    }
+
+    await Message.findByIdAndUpdate(messageId, {
+      $addToSet: { seenBy: socket.userId },
+    });
+    socket.broadcast.emit('message-seen-update', {
+      messageId,
+      userId: socket.userId,
+      type: 'seen',
+    });
+    } catch (error) {
+    console.error(error);
+    socket.emit('error', { message: 'Error updating seen status' });
+    }
     });
 
     // Typing indicator
@@ -102,7 +151,7 @@ export const socketInit = (io) => {
       socket.to(roomId).emit('typing', { userId: socket.userId });
     });
 
-    // Disconnect handler
+    // Disconnect
     socket.on('disconnect', () => {
       console.log(`Disconnected: ${socket.userId}`);
     });
