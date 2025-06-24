@@ -16,4 +16,22 @@ router.get('/me', requireAuth, async (req, res) => {
   }
 });
 
+router.post('/lookup', requireAuth, async (req, res) => {
+  try {
+    const { usernames } = req.body;
+    if (!Array.isArray(usernames)) {
+      return res.status(400).json({ error: 'Usernames must be an array' });
+    }
+
+    const users = await User.find({
+      username: { $in: usernames.map(u => u.toLowerCase()) }
+    }).select('_id username').lean();
+
+    res.status(200).json({ users });
+  } catch (err) {
+    console.error('Error fetching user IDs:', err);
+    res.status(500).json({ error: 'Server error fetching user IDs' });
+  }
+});
+
 export default router;

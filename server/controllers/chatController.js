@@ -1,6 +1,7 @@
 import Room from '../models/Room.js';
 import Message from '../models/Message.js';
 import mongoose from 'mongoose';
+import User from '../models/Users.js';
 
 export const createRoom = async (req, res) => {
   const session = await mongoose.startSession();
@@ -14,7 +15,6 @@ export const createRoom = async (req, res) => {
     if (!['private', 'group'].includes(type)) {
       return res.status(400).json({ error: 'Invalid room type' });
     }
-
     if (!Array.isArray(participantIds)) {
       return res.status(400).json({ error: 'Participants must be an array' });
     }
@@ -22,7 +22,7 @@ export const createRoom = async (req, res) => {
     
     const allParticipants = [...new Set([...participantIds, currentUserId])];
 
-    // For private chats, check if exists
+    // For private chats
     if (type === 'private' && allParticipants.length === 2) {
       const existingRoom = await Room.findOne({
         type: 'private',
@@ -67,6 +67,40 @@ export const createRoom = async (req, res) => {
     session.endSession();
   }
 };
+
+export const getUserIdsByUsernames = async (req, res) => {
+  try {
+    const { usernames } = req.body;  
+    if (!Array.isArray(usernames)) {
+      return res.status(400).json({ error: 'Usernames must be an array' });
+    }
+
+    const users = await User.find({
+      username: { $in: usernames.map(u => u.toLowerCase()) }
+    }).select('_id username').lean();
+
+    res.status(200).json({ users });
+  } catch (err) {
+    console.error('Error fetching user IDs:', err);
+    res.status(500).json({ error: 'Server error fetching user IDs' });
+  }
+};
+
+
+export const getUserRooms = async (req, res) => {
+  try {
+    const rooms = await Room.find({ participants: req.user.id })
+      .populate('participants', 'username') 
+      .sort({ updatedAt: -1 })
+      .lean();
+
+    res.status(200).json({ rooms });
+  } catch (err) {
+    console.error('Error fetching rooms:', err);
+    res.status(500).json({ error: 'Server error fetching rooms' });
+  }
+};
+
 
 export const sendMessage = async (req, res) => {
   const session = await mongoose.startSession();

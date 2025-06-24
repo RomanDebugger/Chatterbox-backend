@@ -1,0 +1,13 @@
+// src/components/TypingIndicator.js
+export default function TypingIndicator() {
+  return (
+    <div className="flex items-center p-3 bg-slate-700/50 rounded-lg w-fit mb-4">
+      <div className="flex space-x-1">
+        <div className="w-2 h-2 bg-gradient-to-r from-sky-400 to-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+        <div className="w-2 h-2 bg-gradient-to-r from-sky-400 to-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+        <div className="w-2 h-2 bg-gradient-to-r from-sky-400 to-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+      </div>
+      <span className="ml-2 text-sm text-slate-300">typing...</span>
+    </div>
+  );
+}

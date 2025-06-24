@@ -13,7 +13,6 @@ export const signup = async (req, res) => {
   try {
     let { username, password } = req.body;
 
-    // Validation
     username = username?.trim().toLowerCase();
     
     if (!USERNAME_REGEX.test(username)) {

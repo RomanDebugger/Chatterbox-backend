@@ -8,5 +8,3 @@ server/.env
 # System files
 .DS_Store
 
-#empty initialized folder
-/client/
