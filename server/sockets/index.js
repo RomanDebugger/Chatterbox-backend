@@ -85,37 +85,53 @@ export const socketInit = (io) => {
 
     // JOIN-ROOM
     socket.on('join-room', async (roomId) => {
-      try {
-        const room = await Room.findById(roomId);
-        if (!room || !room.participants.some((p) => p?.toString() === socket.userId)) {
-          return socket.emit('error', { message: 'Unauthorized room access' });
-        }
+  try {
+    const room = await Room.findById(roomId);
+    if (!room || !room.participants.some((p) => p?.toString() === socket.userId)) {
+      return socket.emit('error', { message: 'Unauthorized room access' });
+    }
 
-        socket.join(roomId);
-        console.log(`${socket.userId} joined room ${roomId}`);
+    if (socket.rooms.has(roomId)) {
+      console.log(`${socket.userId} is already in room ${roomId}, skipping duplicate join`);
+      return;
+    }
 
-        if (room.type === 'group') {
-          const sysMsg = await Message.create({
-            room: roomId,
-            content: `User ${socket.userId} joined the group.`,
-            system: true
-          });
+    socket.join(roomId);
+    console.log(`${socket.userId} joined room ${roomId}`);
 
-          io.to(roomId).emit('receive-message', {
-            _id: sysMsg._id,
-            room: roomId,
-            content: sysMsg.content,
-            createdAt: sysMsg.createdAt,
-            system: true,
-            sender: null
-          });
-        }
+    if (room.type === 'group') {
+      const recentJoinMsg = await Message.findOne({
+        room: roomId,
+        system: true,
+        content: `User ${socket.userId} joined the group.`
+      }).sort({ createdAt: -1 }).limit(1);
 
-      } catch (err) {
-        console.error("Error joining room:", err);
-        socket.emit('error', { message: 'Error joining room' });
+      if (!recentJoinMsg) {
+        const sysMsg = await Message.create({
+          room: roomId,
+          content: `User ${socket.userId} joined the group.`,
+          system: true
+        });
+
+        io.to(roomId).emit('receive-message', {
+          _id: sysMsg._id,
+          room: roomId,
+          content: sysMsg.content,
+          createdAt: sysMsg.createdAt,
+          system: true,
+          sender: null
+        });
+      } else {
+        console.log(`Skipping system message: ${socket.userId} already has join message`);
       }
-    });
+    }
+
+  } catch (err) {
+    console.error("Error joining room:", err);
+    socket.emit('error', { message: 'Error joining room' });
+  }
+});
+
 
     // SEND-MESSAGE
     socket.on('send-message', async ({ roomId, content }) => {
@@ -162,6 +178,61 @@ export const socketInit = (io) => {
         socket.emit('error', { message: 'Error sending message' });
       }
     });
+
+    socket.on('typing', (roomId) => {
+    socket.to(roomId).emit('typing', { userId: socket.userId });
+    });
+
+    socket.on('stop-typing', (roomId) => {
+    socket.to(roomId).emit('stop-typing', socket.userId);
+    });
+
+    socket.on('leave-room',(roomId) => {
+      socket.leave(roomId);
+      console.log(`${socket.userId} left room ${roomId}`);
+    });
+
+
+    socket.on('message-delivered', async ({ roomId, messageId }) => {
+  try {
+    const message = await Message.findByIdAndUpdate(
+      messageId,
+      { $addToSet: { deliveredTo: socket.userId } }, 
+      { new: true }
+    );
+    
+    if (!message) {
+      return socket.emit('error', { message: 'Message not found for delivery' });
+    }
+
+    io.to(roomId).emit('message-delivered', { messageId, userId: socket.userId });
+
+  } catch (err) {
+    console.error('Error marking message delivered:', err);
+    socket.emit('error', { message: 'Server error marking delivered' });
+  }
+});
+
+socket.on('message-seen', async ({ roomId, messageId }) => {
+  try {
+    const message = await Message.findByIdAndUpdate(
+      messageId,
+      { $addToSet: { seenBy: socket.userId } }, 
+      { new: true }
+    );
+    
+    if (!message) {
+      return socket.emit('error', { message: 'Message not found for seen' });
+    }
+
+    io.to(roomId).emit('message-seen', { messageId, userId: socket.userId });
+
+  } catch (err) {
+    console.error('Error marking message seen:', err);
+    socket.emit('error', { message: 'Server error marking seen' });
+  }
+});
+
 
     socket.on('disconnect', () => {
       console.log(`Disconnected: ${socket.userId}`);

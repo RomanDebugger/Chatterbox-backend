@@ -2,9 +2,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/app/contexts/AuthContext';
-import NewRoomModal from '../components/newRoomModal'
-import { initializeSocket,destroySocket } from '@/app/lib/socket';
-
+import NewRoomModal from '../components/newRoomModal';
+import { initializeSocket, destroySocket } from '@/app/lib/socket';
 
 export default function MainLayout({ children }) {
   const { user, loading, logout } = useAuth();
@@ -13,6 +12,7 @@ export default function MainLayout({ children }) {
   const [ready, setReady] = useState(false);
   const [showNewRoom, setShowNewRoom] = useState(false);
 
+  // Handle auth + redirect
   useEffect(() => {
     if (!loading) {
       if (!user) {
@@ -25,18 +25,14 @@ export default function MainLayout({ children }) {
     }
   }, [loading, user, router, pathname]);
 
+  // Handle socket init / cleanup
   useEffect(() => {
-    if (user) {
-      const token = localStorage.getItem('token');
-      if (token) {
-        initializeSocket(token);
-      }
-    }
+  if (!user?.token) return;
+  initializeSocket(user.token);
+  return () => destroySocket();
+}, [user?.token]);
 
-    return () => {
-      destroySocket();
-    };
-  }, [user]);
+
 
   if (loading || !ready) {
     return (
@@ -49,9 +45,10 @@ export default function MainLayout({ children }) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-red-900 to-slate-700">
       <NewRoomModal open={showNewRoom} onClose={() => setShowNewRoom(false)} />
-      {/* Navigation sidebar */}
+      
       <div className="fixed left-0 top-0 h-full w-20 bg-slate-800/80 backdrop-blur-md border-r border-slate-700/50 flex flex-col items-center py-6 z-10">
-        <div className="mb-8">
+        
+<div className="mb-8">
           <svg viewBox="0 0 100 100" className="w-12 h-12 drop-shadow-lg animate-float">
             <rect x="30" y="40" width="40" height="40" rx="5" fill="url(#bodyGrad)" stroke="#fff" strokeWidth="1"/>
             <rect x="35" y="45" width="30" height="15" rx="3" fill="url(#doorGrad)"/>
@@ -83,10 +80,12 @@ export default function MainLayout({ children }) {
             </defs>
           </svg>
         </div>
-         <nav className="flex-1 space-y-6 flex flex-col items-center">
+
+        <nav className="flex-1 space-y-6 flex flex-col items-center">
           <button className="p-3 bg-gradient-to-br from-amber-400/20 to-rose-400/20 rounded-xl hover:bg-gradient-to-br hover:from-amber-400/30 hover:to-rose-400/30 transition-all cursor-pointer">
             <span className="text-2xl">💬</span>
           </button>
+
           <button 
             className="p-3 bg-slate-700/50 rounded-xl hover:bg-slate-600/50 transition-all cursor-pointer"
             onClick={() => setShowNewRoom(true)}
@@ -94,13 +93,13 @@ export default function MainLayout({ children }) {
             <span className="text-2xl">👥</span>
             <p className="text-xs text-slate-400 mt-1">New chat</p>
           </button>
+
           <button
             className="p-3 bg-red-600/50 rounded-xl hover:bg-red-600/70 transition-all cursor-pointer text-white text-xs"
             onClick={() => {
               if (window.confirm('Are you sure you want to logout?')) {
                 logout();
                 router.push('/auth');
-                router.refresh();
               }
             }}
           >

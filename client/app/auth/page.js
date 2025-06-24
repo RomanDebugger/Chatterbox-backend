@@ -22,7 +22,6 @@ const [signupData, setSignupData] = useState({
   const { login, signup } = useAuth();
   const router = useRouter();
 
-  // Muted but vibrant gradients
   const PRIMARY_GRADIENT = 'from-amber-400 to-rose-400';
   const SECONDARY_GRADIENT = 'from-sky-400 to-indigo-400';
   
@@ -69,11 +68,9 @@ const [signupData, setSignupData] = useState({
     }
   };
 
-  // Only render the form after mounting to avoid hydration issues
   if (!mounted) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-red-900 to-slate-700">
-        {/* Simple loading state that matches your design */}
         <div className="w-24 h-24 animate-pulse rounded-full bg-gradient-to-r from-amber-400/20 to-rose-400/20"></div>
       </div>
     );
@@ -81,7 +78,6 @@ const [signupData, setSignupData] = useState({
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-red-900 to-slate-700 overflow-hidden relative">
-      {/* Floating particles - now with stable keys */}
       <div className="floating-elements fixed top-0 left-0 w-full h-full pointer-events-none z-0">
         {['✉️', '💬', '🗨️', '🔒', '👻', '🎙️'].map((emoji, i) => (
           <div 
@@ -113,7 +109,6 @@ const [signupData, setSignupData] = useState({
               viewBox="0 0 100 100" 
               className="w-full h-full drop-shadow-lg animate-float"
             >
-              {/* Modern mailbox design */}
               <rect x="30" y="40" width="40" height="40" rx="5" fill="url(#bodyGrad)" stroke="#fff" strokeWidth="1"/>
               <rect x="35" y="45" width="30" height="15" rx="3" fill="url(#doorGrad)"/>
               <path d="M50 20 L70 40 L30 40 Z" fill="url(#roofGrad)"/>

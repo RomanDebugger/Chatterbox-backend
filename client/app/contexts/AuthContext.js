@@ -3,7 +3,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/app/lib/api';
-import { initializeSocket, getSocket } from '@/app/lib/socket';
 
 const AuthContext = createContext();
 
@@ -35,7 +34,7 @@ if (token && savedUser) {
       
       setUser(userPayload); 
       localStorage.setItem('user', JSON.stringify(userPayload));
-      initializeSocket(token); 
+     
       
       return { success: true };
     } catch (error) {
@@ -53,7 +52,6 @@ if (token && savedUser) {
     }
 
     setUser(user);
-    initializeSocket(token);
 
     return { success: true };
   } catch (error) {
@@ -66,10 +64,6 @@ if (token && savedUser) {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-    }
-    const socket = getSocket();
-    if (socket) {
-      socket.disconnect();
     }
     
     setUser(null);

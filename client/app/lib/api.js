@@ -1,5 +1,4 @@
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
-
+import { BASE_URL } from "./constants";
 export const api = {
   async request(endpoint, method = 'GET', body = null) {
     // Ensure window is available (client-side only)
@@ -12,7 +11,6 @@ export const api = {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    // Ensure endpoint doesn't start with slash if BASE_URL ends with one
     const normalizedEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
     
     const response = await fetch(`${BASE_URL}/${normalizedEndpoint}`, {
@@ -36,9 +34,7 @@ export const api = {
 
   // Chat endpoints
   getRooms: () => api.request('chat/rooms'),
-  // createRoom: (data) => api.request('chat/rooms', 'POST', data),
   getMessages: (roomId) => api.request(`chat/messages/${roomId}`),
-  // sendMessage: (roomId, content) => api.request('chat/messages', 'POST', { roomId, content }),
 
   //User endpoints
   getUserIdsByUsernames: (usernames) => api.request('users/lookup', 'POST', { usernames }),
