@@ -1,38 +1,24 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect,useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/app/contexts/AuthContext';
 import NewRoomModal from '../components/newRoomModal';
-import { initializeSocket, destroySocket } from '@/app/lib/socket';
-
 export default function MainLayout({ children }) {
   const { user, loading, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-  const [ready, setReady] = useState(false);
   const [showNewRoom, setShowNewRoom] = useState(false);
-
-  // Handle auth + redirect
+  
+  const AUTH_PATH = process.env.NEXT_PUBLIC_AUTH_PATH || '/auth';
+  const ready = !loading && !!user;
+  
   useEffect(() => {
     if (!loading) {
-      if (!user) {
-        if (pathname !== '/auth') {
-          router.push('/auth');
-        }
-      } else {
-        setReady(true);
+      if (!user && pathname !== AUTH_PATH) {
+        router.push(AUTH_PATH);
       }
     }
-  }, [loading, user, router, pathname]);
-
-  // Handle socket init / cleanup
-  useEffect(() => {
-  if (!user?.token) return;
-  initializeSocket(user.token);
-  return () => destroySocket();
-}, [user?.token]);
-
-
+  }, [loading, user, pathname, router, AUTH_PATH]);
 
   if (loading || !ready) {
     return (

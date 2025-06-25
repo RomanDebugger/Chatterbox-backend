@@ -70,13 +70,38 @@ export function useRoom(roomId) {
 
     };
 
-    const handleTyping = ({ userId }) => {
-      setTypingUsers(prev => prev.includes(userId) ? prev : [...prev, userId]);
-    };
+const handleTyping = ({ userId, username }) => {
+  console.log('[TYPING] Received typing event:', { userId, username });
 
-    const handleStopTyping = (userId) => {
-      setTypingUsers(prev => prev.filter(id => id !== userId));
-    };
+  if (!userId || !username) {
+    console.warn('[TYPING] Invalid typing payload:', { userId, username });
+    return;
+  }
+
+  setTypingUsers(prev => {
+    const exists = prev.some(u => u.userId === userId);
+    if (exists) {
+      console.log(`[TYPING] User ${username} (${userId}) is already in typing list`);
+      return prev;
+    }
+    const updated = [...prev, { userId, username }];
+    console.log('[TYPING] Updated typing users:', updated);
+    return updated;
+  });
+};
+
+const handleStopTyping = ({ userId }) => {
+  console.log('[STOP-TYPING] Received stop typing event:', { userId });
+
+  setTypingUsers(prev => {
+    const updated = prev.filter(u => u.userId !== userId);
+    console.log('[STOP-TYPING] Updated typing users:', updated);
+    return updated;
+  });
+};
+
+
+
 
     const handleStatusUpdate = ({ messageId, userId, type }) => {
       setMessages(prev => prev.map(msg =>

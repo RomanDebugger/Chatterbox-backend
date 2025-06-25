@@ -11,7 +11,7 @@ export function useRooms(user) {
     if (!user) return;
     try {
       const { rooms } = await api.getRooms();
-      setRooms(rooms);
+      setRooms(rooms.sort((a, b) => new Date(b?.lastActivityAt || 0) - new Date(a?.lastActivityAt || 0)));
     } catch (err) {
       console.error('Failed to load rooms:', err);
     }
@@ -25,7 +25,10 @@ export function useRooms(user) {
         return null;
       }
       const { room } = await api.createRoom(users.map(u => u._id));
-      setRooms(prev => [...prev, room]);
+      setRooms(prev => [...prev, room].sort((a, b) => {
+      const dateA = new Date(a?.lastActivityAt || 0);
+      const dateB = new Date(b?.lastActivityAt || 0);
+      return dateB - dateA;}));
       return room;
     } catch (err) {
       console.error(err);
@@ -39,13 +42,23 @@ export function useRooms(user) {
   }, [loadRooms]);
 
   useEffect(() => {
-    if (!socket) return;
-    const handleNewRoom = (newRoom) => {
-      setRooms(prev => prev.some(r => r._id === newRoom._id) ? prev : [...prev, newRoom]);
-    };
-    on(socketEvents.NEW_ROOM, handleNewRoom);
-    return () => off(socketEvents.NEW_ROOM, handleNewRoom);
-  }, [socket, on, off]);
+  if (!socket) return;
+  
+  const handleReceiveMessage = (msg) => {
+    setRooms(prev => {
+      const updated = prev.map(r => 
+        r._id === msg.room 
+          ? { ...r, lastActivityAt: msg.createdAt } 
+          : r
+      );
+      return updated.sort((a, b) => new Date(b?.lastActivityAt || 0) - new Date(a?.lastActivityAt || 0));
+    });
+  };
+
+  on(socketEvents.RECEIVE_MESSAGE, handleReceiveMessage);
+  return () => off(socketEvents.RECEIVE_MESSAGE, handleReceiveMessage);
+}, [socket, on, off]);
+
 
   return {
     rooms,

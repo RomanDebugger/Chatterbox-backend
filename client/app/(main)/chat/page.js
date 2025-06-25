@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useRoom } from '@/app/hooks/useRoom';
@@ -11,6 +11,7 @@ export default function ChatPage() {
   const [activeRoom, setActiveRoom] = useState(null);
   const [newMessage, setNewMessage] = useState('');
   
+  const lastMessageRef = useRef(null);
   
   const {
     room,
@@ -48,6 +49,11 @@ export default function ChatPage() {
     return () => window.removeEventListener('newChatTriggered', handleNewChat);
   }, []);
 
+  useEffect(()=>{
+    if(lastMessageRef.current) {
+      lastMessageRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  },[messages]);
   return (
     <div className="flex h-screen">
       <div className="w-80 bg-slate-800/80 backdrop-blur-md border-r border-slate-700/50 flex flex-col">
@@ -55,7 +61,9 @@ export default function ChatPage() {
           <h2 className="text-xl font-bold bg-gradient-to-r from-amber-400 to-rose-400 bg-clip-text text-transparent">Conversations</h2>
         </div>
         <div className="flex-1 overflow-y-auto">
-          {rooms.map(r => (
+          {[...rooms]
+            .sort((a, b) => new Date(b?.lastActivityAt || 0) - new Date(a?.lastActivityAt || 0))
+            .map(r => (
             <div
               key={r._id}
               onClick={() => setActiveRoom(r._id)}
@@ -84,13 +92,15 @@ export default function ChatPage() {
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {messages.map(msg => {
+          {messages.map((msg,idx)=> {
             const isMine = user && msg.sender?._id === user._id;
             const isSystem = msg.system;
+            const isLast = idx === messages.length - 1;
             return (
               <div
                 key={msg._id}
-                className={`flex ${isSystem ? 'justify-center' : isMine ? 'justify-end' : 'justify-start'}`}
+                ref = {isLast ? lastMessageRef : null}
+               className={`flex ${isSystem ? 'justify-center' : isMine ? 'justify-end' : 'justify-start'}`}
               >
                 <div
                   className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${isSystem
@@ -110,6 +120,16 @@ export default function ChatPage() {
             );
           })}
         </div>
+
+        {typingUsers.length > 0 && (
+  <div className="p-2 text-sm text-slate-300 italic">
+    {typingUsers.length === 1
+      ? `${typingUsers[0].username} is typing...`
+      : `${typingUsers.map(u => u.username).join(', ')} are typing...`}
+  </div>
+)}
+
+
 
         {room && (
           <div className="p-4 border-t border-slate-700/50">

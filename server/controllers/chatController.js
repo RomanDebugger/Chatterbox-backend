@@ -27,7 +27,7 @@ export const getUserRooms = async (req, res) => {
   try {
     const rooms = await Room.find({ participants: req.user.id })
       .populate('participants', 'username') 
-      .sort({ updatedAt: -1 })
+      .sort({ lastActivityAt: -1 })
       .lean();
 
     res.status(200).json({ rooms });

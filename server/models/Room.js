@@ -28,6 +28,11 @@ const roomSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
   },
+  lastActivityAt: {
+    type: Date,
+    default: Date.now,
+    index:true,
+    },
 }, { timestamps: true });
 
 roomSchema.pre('validate', function (next) {
@@ -46,7 +51,6 @@ roomSchema.pre('save', function(next) {
 });
 
 roomSchema.index(
-  { type: 1, participants: 1 },
   {
     unique: true,
     partialFilterExpression: { type: 'private' }

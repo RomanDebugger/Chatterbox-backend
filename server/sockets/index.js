@@ -9,7 +9,6 @@ export const socketInit = (io) => {
     const token = socket.handshake.auth?.token;
    console.log("Socket auth token:", token);
 
-    
     if (!token) {
       console.log("No token provided");
       return next(new Error('No token provided'));
@@ -17,15 +16,25 @@ export const socketInit = (io) => {
     try {
       const decoded = jwt.verify(token, config.jwtSecret);
       socket.userId = decoded.id;
+
+      console.log(`Authenticated user: ${socket.userId}`);
       next();
-    } catch (err) {
+    } catch (err) { 
       console.log("Invalid token");
       next(new Error('Invalid token'));
     }
   });
 
-  io.on('connection', (socket) => {
+  io.on('connection', async (socket) => {
+    
     console.log(`Connected: ${socket.userId} (${socket.id})`);
+
+    try {
+    const user = await User.findById(socket.userId).select('username');
+    socket.username = user?.username || 'Unknown User';
+  } catch {
+    socket.username = 'Unknown User';
+  }
 
     const userMessageCount = new Map();
 
@@ -73,10 +82,14 @@ export const socketInit = (io) => {
           });
         }
 
-        callback({ room: newRoom, message: 'Room created' });
+        const populatedRoom = await Room.findById(newRoom._id)
+        .populate('participants', 'username')
+        .lean();
+
+        callback({ room: populatedRoom, message: 'Room created' });
 
         allParticipants.forEach(pId => {
-          io.to(pId).emit('new-room', newRoom);
+          io.to(pId).emit('new-room', populatedRoom);
         });
 
         console.log(` Room created: ${newRoom._id}`);
@@ -103,7 +116,7 @@ export const socketInit = (io) => {
     socket.join(roomId);
     console.log(`${socket.userId} joined room ${roomId}`);
 
-    groupParticipant = await User.findById(socket.userId);
+    const groupParticipant = await User.findById(socket.userId);
     const participantName = groupParticipant ? groupParticipant.username : 'Unknown User';
 
     if (room.type === 'group') {
@@ -168,6 +181,8 @@ export const socketInit = (io) => {
           sender: socket.userId,
           content
         });
+        
+        await Room.findByIdAndUpdate(roomId, { lastActivityAt: Date.now() });
 
         const populatedMsg = await Message.findById(newMsg._id)
           .populate('sender', 'username')
@@ -186,13 +201,14 @@ export const socketInit = (io) => {
       }
     });
 
-    socket.on('typing', (roomId) => {
-    socket.to(roomId).emit('typing', { userId: socket.userId });
-    });
+   socket.on('typing', (roomId) => {
+  socket.to(roomId).emit('typing', { userId: socket.userId, username: socket.username });
+  console.log(`${socket.userId} is typing in room ${roomId}`);
+});
 
-    socket.on('stop-typing', (roomId) => {
-    socket.to(roomId).emit('stop-typing', socket.userId);
-    });
+socket.on('stop-typing', (roomId) => {
+  socket.to(roomId).emit('stop-typing', { userId: socket.userId });
+});
 
     socket.on('leave-room',(roomId) => {
       socket.leave(roomId);

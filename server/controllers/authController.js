@@ -71,7 +71,7 @@ export const login = async (req, res) => {
   try {
     let { username, password } = req.body;
     username = username?.trim().toLowerCase();
-
+     
     // Find user with active session check
     const user = await User.findOne({ username })
       .select('+password +active')
