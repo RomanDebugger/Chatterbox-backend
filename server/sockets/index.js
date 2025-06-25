@@ -2,6 +2,7 @@ import jwt from 'jsonwebtoken';
 import { config } from '../config.js';
 import Message from '../models/Message.js';
 import Room from '../models/Room.js';
+import User from '../models/Users.js';
 
 export const socketInit = (io) => {
   io.use((socket, next) => {
@@ -54,6 +55,9 @@ export const socketInit = (io) => {
           }
         }
 
+        const groupcreator = await User.findById(currentUserId);
+        const creatorName = groupcreator ? groupcreator.username : 'Unknown User';
+
         const newRoom = await Room.create({
           type,
           name: type === 'group' ? name || 'Group Chat' : undefined,
@@ -64,7 +68,7 @@ export const socketInit = (io) => {
         if (type === 'group') {
           await Message.create({
             room: newRoom._id,
-            content: `Group created by ${currentUserId}`,
+            content: `Group created by ${creatorName}`,
             system: true
           });
         }
@@ -99,17 +103,20 @@ export const socketInit = (io) => {
     socket.join(roomId);
     console.log(`${socket.userId} joined room ${roomId}`);
 
+    groupParticipant = await User.findById(socket.userId);
+    const participantName = groupParticipant ? groupParticipant.username : 'Unknown User';
+
     if (room.type === 'group') {
       const recentJoinMsg = await Message.findOne({
         room: roomId,
         system: true,
-        content: `User ${socket.userId} joined the group.`
+        content: `User ${participantName} joined the group.`
       }).sort({ createdAt: -1 }).limit(1);
 
       if (!recentJoinMsg) {
         const sysMsg = await Message.create({
           room: roomId,
-          content: `User ${socket.userId} joined the group.`,
+          content: `User ${participantName} joined the group.`,
           system: true
         });
 
@@ -122,7 +129,7 @@ export const socketInit = (io) => {
           sender: null
         });
       } else {
-        console.log(`Skipping system message: ${socket.userId} already has join message`);
+        console.log(`Skipping system message: ${participantName} already has join message`);
       }
     }
 

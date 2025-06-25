@@ -82,20 +82,17 @@ export default function MainLayout({ children }) {
         </div>
 
         <nav className="flex-1 space-y-6 flex flex-col items-center">
-          <button className="p-3 bg-gradient-to-br from-amber-400/20 to-rose-400/20 rounded-xl hover:bg-gradient-to-br hover:from-amber-400/30 hover:to-rose-400/30 transition-all cursor-pointer">
+    
+
+          <button 
+            className="p-3 h-15 w-15 bg-slate-700/50 rounded-xl hover:bg-slate-600/50 transition-all cursor-pointer"
+            onClick={() => setShowNewRoom(true)}
+          >
             <span className="text-2xl">💬</span>
           </button>
 
-          <button 
-            className="p-3 bg-slate-700/50 rounded-xl hover:bg-slate-600/50 transition-all cursor-pointer"
-            onClick={() => setShowNewRoom(true)}
-          >
-            <span className="text-2xl">👥</span>
-            <p className="text-xs text-slate-400 mt-1">New chat</p>
-          </button>
-
           <button
-            className="p-3 bg-red-600/50 rounded-xl hover:bg-red-600/70 transition-all cursor-pointer text-white text-xs"
+            className="p-3 h-15 w-15 bg-red-600/50 rounded-xl hover:bg-red-600/70 transition-all cursor-pointer text-white text-xs"
             onClick={() => {
               if (window.confirm('Are you sure you want to logout?')) {
                 logout();
@@ -103,7 +100,7 @@ export default function MainLayout({ children }) {
               }
             }}
           >
-            🚪 Logout
+            <span className="text-2xl">🚪</span>
           </button>
         </nav>
       </div>

@@ -100,6 +100,7 @@ export default function ChatPage() {
                     : 'bg-slate-700/50 text-white'
                     }`}
                 >
+                  <span className='font-semibold'>{isSystem ? 'System' : msg.sender?.username || 'unkonwn user'}</span>
                   <p>{msg.content}</p>
                   <p className="text-xs opacity-70 text-right mt-1">
                     {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
