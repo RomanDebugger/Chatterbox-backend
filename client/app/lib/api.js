@@ -1,8 +1,7 @@
 import { BASE_URL } from "./constants";
 export const api = {
   async request(endpoint, method = 'GET', body = null) {
-    // Ensure window is available (client-side only)
-    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    const token = typeof window !== 'undefined' ? sessionStorage.getItem('token') : null;
     const headers = {
       'Content-Type': 'application/json',
     };

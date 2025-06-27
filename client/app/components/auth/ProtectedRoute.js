@@ -2,21 +2,25 @@
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import AuthPage from '@/app/Pages/AuthPage';
+import LoadingSpinner from './LoadingSpinner'; 
 
-export default function Auth() {
+export default function ProtectedRoute({ children }) {
   const { user, isLoading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading && user) {
-      router.replace('/chat');
+    if (!isLoading && !user) {
+      router.replace('/auth');
     }
   }, [user, isLoading, router]);
 
-  if (isLoading || user) {
+  if (isLoading) {
+    return <LoadingSpinner />;
+  }
+
+  if (!user) {
     return null; 
   }
 
-  return <AuthPage />;
+  return children;
 }

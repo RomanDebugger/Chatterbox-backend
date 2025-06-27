@@ -42,6 +42,9 @@ roomSchema.pre('validate', function (next) {
   if (this.participants.length > 2 && this.type !== 'group') {
     return next(new Error('Type must be group when more than 2 participants'));
   }
+  if (this.participants.length > 256) {
+  return next(new Error('Too many participants in room (max 256 allowed)'));
+}
   next();
 });
 

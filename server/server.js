@@ -10,15 +10,16 @@ import rateLimit from 'express-rate-limit';
 import { Server } from 'socket.io';
 
 import { config } from './config.js';
+import { errorResponse, ERRORS } from './utils/errors.js';
 
 import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
 
-
-import { socketInit } from './sockets/index.js';
+import { socketInit } from './sockets/init.js';
 
 dotenv.config();
+const PORT = config.port;
 
 const app = express();
 const server = http.createServer(app);
@@ -38,24 +39,6 @@ app.use(cookieParser());
 app.use(morgan('dev'));
 
 
-const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100, 
-  message: 'Too many requests from this IP, please try again later.'
-});
-
-app.use('/api/', apiLimiter);
-
-//Db connnections
-mongoose.connect(config.mongoURI)
-  .then(()=>{console.log('MongoDB connected')})
-  .catch(err => console.error('MongoDB connection error:', err.message));
-
-
-//routes
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/chat', chatRoutes);
 
 //sockets
 const io = new Server(server, {
@@ -66,9 +49,39 @@ const io = new Server(server, {
 });
 socketInit(io);
 
-//Booting
-const PORT = config.port;
 
+//Rate limiting
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10, 
+  message: ERRORS.TOO_MANY_REQUESTS.message
+});
+
+app.use('/api/auth', authLimiter);
+
+//Db connnections
+mongoose.connect(config.mongoURI)
+  .then(()=>{console.log('MongoDB connected')})
+  .catch(err => {
+    console.error(ERRORS.DB_CONNECT_FAIL.message, err);
+    process.exit(1);
+  });
+
+
+//routes
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/chat', chatRoutes);
+
+
+//global Error handler
+app.use((err, req, res, next) => {
+  console.error(`Global error: ${err.message}`);
+  errorResponse(res, ERRORS.SERVER_ERROR, err.message);
+});
+
+
+//Booting
 server.listen(PORT,()=>{
     console.log(`Chatterbox backend running at http://localhost:${PORT}`);
 });

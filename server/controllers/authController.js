@@ -2,66 +2,68 @@ import User from '../models/Users.js';
 import { hashPassword, comparePassword } from '../utils/hash.js';
 import { generateToken } from '../utils/jwt.js';
 import mongoose from 'mongoose';
+import { ERRORS, errorResponse } from '../utils/errors.js';
 
 const USERNAME_REGEX = /^[a-z0-9_]{3,20}$/;
 const reservedUsernames = ['admin', 'root', 'null', 'undefined'];
+const minPasswordLength = 6;
 
 export const signup = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
-  
+
   try {
     let { username, password } = req.body;
-
     username = username?.trim().toLowerCase();
-    
+
     if (!USERNAME_REGEX.test(username)) {
-      return res.status(400).json({
-        error: 'Username must be 3-20 lowercase letters, numbers, or underscores'
-      });
+      await session.abortTransaction();
+      return errorResponse(res, ERRORS.USERNAME_INVALID);
     }
 
     if (reservedUsernames.includes(username)) {
-      return res.status(400).json({ error: 'Username not allowed' });
+      await session.abortTransaction();
+      return errorResponse(res, ERRORS.USERNAME_NOT_ALLOWED);
     }
 
-    if (!password || password.length < 6) {
-      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    if (!password || password.length < minPasswordLength) {
+      await session.abortTransaction();
+      return errorResponse(res, ERRORS.WEAK_PASSWORD);
     }
 
-    // Check existing user in transaction
     const existing = await User.findOne({ username }).session(session);
     if (existing) {
       await session.abortTransaction();
-      return res.status(400).json({ error: 'Username exists' });
+      return errorResponse(res, ERRORS.USERNAME_EXISTS);
     }
 
-    // Create user
     const hashed = await hashPassword(password);
     const [user] = await User.create([{
       username,
       password: hashed
     }], { session });
 
-    // Generate token
     const token = generateToken(user._id);
 
     await session.commitTransaction();
-    
-    res.status(201).json({
+
+    return res.status(201).json({
+      success: true,
       message: 'Signup successful',
-      user: {
-        id: user._id,
-        username: user.username,
-        createdAt: user.createdAt
-      },
-      token
+      data: {
+        user: {
+          id: user._id,
+          username: user.username,
+          createdAt: user.createdAt
+        },
+        token
+      }
     });
 
   } catch (err) {
     await session.abortTransaction();
     console.error('Signup error:', err);
-    res.status(500).json({ error: 'Server error during signup' });
+    return errorResponse(res, ERRORS.SERVER_ERROR);
   } finally {
     session.endSession();
   }
@@ -71,38 +73,36 @@ export const login = async (req, res) => {
   try {
     let { username, password } = req.body;
     username = username?.trim().toLowerCase();
-     
-    // Find user with active session check
+
     const user = await User.findOne({ username })
-      .select('+password +active')
-      .exec();
+      .select('+password +active');
 
     if (!user || !user.active) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return errorResponse(res, ERRORS.INVALID_CREDENTIALS);
     }
 
-    // Compare passwords
     const match = await comparePassword(password, user.password);
     if (!match) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return errorResponse(res, ERRORS.INVALID_CREDENTIALS);
     }
 
-    // Generate token with device info
     const token = generateToken(user._id);
 
-    // Omit sensitive data
     const userData = user.toObject();
     delete userData.password;
     delete userData.active;
 
-    res.status(200).json({
+    return res.status(200).json({
+      success: true,
       message: 'Login successful',
-      user: userData,
-      token
+      data: {
+        user: userData,
+        token
+      }
     });
 
   } catch (err) {
-    console.error('Login error:', err);
-    res.status(500).json({ error: 'Server error during login' });
+    console.error('Login error:', { message: err.message, stack: err.stack });
+    return errorResponse(res, ERRORS.SERVER_ERROR);
   }
 };

@@ -1,87 +1,105 @@
-// contexts/AuthContext.js
 'use client';
 import { createContext, useContext, useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { api } from '@/app/lib/api';
 
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null); 
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const pathname = usePathname();
 
+  // Load user from sessionStorage on initial render
   useEffect(() => {
-    const token = localStorage.getItem('token');
-const savedUser = localStorage.getItem('user');
-if (token && savedUser) {
+    const loadUser = async () => {
+      try {
+        const token = sessionStorage.getItem('token');
+        const savedUser = sessionStorage.getItem('user');
 
-  setUser(JSON.parse(savedUser));
-}
-    setLoading(false);
+        if (token && savedUser) {
+          setUser(JSON.parse(savedUser));
+          // Optional: Verify token with backend
+          // await api.verifyToken(token);
+        } else {
+          setUser(null);
+        }
+      } catch (err) {
+        console.error("Failed to load user:", err);
+        sessionStorage.removeItem('token');
+        sessionStorage.removeItem('user');
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadUser();
   }, []);
 
+  // Handle route protection
+  useEffect(() => {
+    if (loading) return;
 
+    const token = sessionStorage.getItem('token');
+    const isAuthPage = pathname.startsWith('/auth');
+    const isProtectedPage = pathname.startsWith('/chat');
+
+    if (!token && isProtectedPage) {
+      router.replace('/auth');
+      return;
+    }
+
+    if (token && isAuthPage) {
+      router.replace('/chat');
+      return;
+    }
+  }, [loading, pathname, router]);
 
   const login = async (credentials) => {
     try {
-      const { user: userPayload, token } = await api.login(credentials);
+      const response = await api.login(credentials);
+      const { user: userPayload, token } = response.data;
+
+      sessionStorage.setItem('token', token);
+      sessionStorage.setItem('user', JSON.stringify(userPayload));
+      setUser(userPayload);
       
-      
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('token', token);
-      }
-      
-      setUser(userPayload); 
-      localStorage.setItem('user', JSON.stringify(userPayload));
-     
-      
+      // Redirect after successful login
+      router.replace('/chat');
       return { success: true };
     } catch (error) {
+      console.error("Login failed:", error);
       return { success: false, error: error.message };
     }
   };
 
- const signup = async (userData) => {
-  try {
-    const { user, token } = await api.register(userData);
+  const signup = async (userData) => {
+    try {
+      const response = await api.register(userData);
+      const { user: userPayload, token } = response.data;
 
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
+      sessionStorage.setItem('token', token);
+      sessionStorage.setItem('user', JSON.stringify(userPayload));
+      setUser(userPayload);
+      
+      // Redirect after successful signup
+      router.replace('/chat');
+      return { success: true };
+    } catch (error) {
+      console.error("Signup failed:", error);
+      return { success: false, error: error.message };
     }
-
-    setUser(user);
-
-    return { success: true };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
+  };
 
   const logout = () => {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-    }
-    
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('user');
     setUser(null);
-    router.push('/auth');
+    // Force a full page reload to clear any state
+    window.location.href = '/auth';
   };
-
-  useEffect(() => {
-  const handleForceLogout = () => {
-    logout();
-    router.push('/auth');
-  };
-
-  window.addEventListener('force-logout', handleForceLogout);
-
-  return () => {
-    window.removeEventListener('force-logout', handleForceLogout);
-  };
-}, [logout, router]);
 
   return (
     <AuthContext.Provider value={{ 

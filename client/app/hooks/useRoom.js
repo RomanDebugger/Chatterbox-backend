@@ -52,9 +52,6 @@ export function useRoom(roomId) {
   useEffect(() => {
     if (!socket || !roomId) return;
 
-    if (prevRoomId.current && prevRoomId.current !== roomId) {
-      emit(socketEvents.LEAVE_ROOM, prevRoomId.current);
-    }
     if (prevRoomId.current !== roomId) {
   if (prevRoomId.current) {
     emit(socketEvents.LEAVE_ROOM, prevRoomId.current);
@@ -62,6 +59,7 @@ export function useRoom(roomId) {
   emit(socketEvents.JOIN_ROOM, roomId);
   prevRoomId.current = roomId;
 }
+
 
     prevRoomId.current = roomId;
 
@@ -120,18 +118,23 @@ const handleStopTyping = ({ userId }) => {
       console.log('[DEBUG] handleNewMessage prev:', prev);
     };
 
+const handleDelivered = (data) => handleStatusUpdate({ ...data, type: 'delivered' });
+const handleSeen = (data) => handleStatusUpdate({ ...data, type: 'seen' });
+
+
     on(socketEvents.RECEIVE_MESSAGE, handleNewMessage);
     on(socketEvents.TYPING, handleTyping);
     on(socketEvents.STOP_TYPING, handleStopTyping);
-    on(socketEvents.MESSAGE_DELIVERED, (data) => handleStatusUpdate({ ...data, type: 'delivered' }));
-    on(socketEvents.MESSAGE_SEEN, (data) => handleStatusUpdate({ ...data, type: 'seen' }));
+    on(socketEvents.MESSAGE_DELIVERED, handleDelivered);
+    on(socketEvents.MESSAGE_SEEN, handleSeen);
+
 
     return () => {
       off(socketEvents.RECEIVE_MESSAGE, handleNewMessage);
       off(socketEvents.TYPING, handleTyping);
       off(socketEvents.STOP_TYPING, handleStopTyping);
-      off(socketEvents.MESSAGE_DELIVERED);
-      off(socketEvents.MESSAGE_SEEN);
+      off(socketEvents.MESSAGE_DELIVERED, handleDelivered);
+      off(socketEvents.MESSAGE_SEEN, handleSeen);
       emit(socketEvents.LEAVE_ROOM, roomId);
     };
   }, [socket, roomId, emit, on, off]);
