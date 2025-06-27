@@ -7,6 +7,7 @@ import AuthHeader from '../components/auth/AuthHeader';
 import AuthToggle from '../components/auth/AuthToggle';
 import AuthForm from '../components/auth/AuthForm';
 import AuthFooter from '../components/auth/AuthFooter';
+import LoadingSpinner from '../components/auth/LoadingSpinner';
 
 export default function AuthPage() {
   const [activeForm, setActiveForm] = useState('login');
@@ -39,8 +40,8 @@ export default function AuthPage() {
         alert('Passwords do not match');
         return;
       }
-      const result = activeForm === 'login' 
-        ? await login(loginData) 
+      const result = activeForm === 'login'
+        ? await login(loginData)
         : await signup(signupData);
 
       if (result.success) {
@@ -56,14 +57,17 @@ export default function AuthPage() {
     }
   };
 
-  if (!mounted) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-red-900 to-slate-700">
-        <div className="w-24 h-24 animate-pulse rounded-full bg-gradient-to-r from-amber-400/20 to-rose-400/20"></div>
-      </div>
-    );
-  }
+  // if (!mounted) {
+  //   return (
+  //     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-red-900 to-slate-700">
+  //       <div className="w-24 h-24 animate-pulse rounded-full bg-gradient-to-r from-amber-400/20 to-rose-400/20"></div>
+  //     </div>
+  //   );
+  // }
 
+  if (isLoading || !mounted) {
+    return <LoadingSpinner />;
+  }
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-red-900 to-slate-700 overflow-hidden relative">
       <FloatingBackground className="absolute inset-0 z-0" />
@@ -74,14 +78,14 @@ export default function AuthPage() {
           </div>
         )}
         <AuthHeader primaryGradient={PRIMARY_GRADIENT} />
-        <AuthToggle 
-          activeForm={activeForm} 
-          setActiveForm={setActiveForm} 
-          primaryGradient={PRIMARY_GRADIENT} 
-          secondaryGradient={SECONDARY_GRADIENT} 
+        <AuthToggle
+          activeForm={activeForm}
+          setActiveForm={setActiveForm}
+          primaryGradient={PRIMARY_GRADIENT}
+          secondaryGradient={SECONDARY_GRADIENT}
         />
-        <AuthForm 
-          activeForm={activeForm} 
+        <AuthForm
+          activeForm={activeForm}
           loginData={loginData}
           signupData={signupData}
           setLoginData={setLoginData}

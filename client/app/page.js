@@ -1,18 +1,21 @@
 'use client';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import LoadingSpinner from './components/auth/LoadingSpinner';
 
 export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    router.replace('/auth');
+    const timer = setTimeout(() => {
+      router.replace('/auth');
+    }, 1200);
+    return () => clearTimeout(timer);
   }, [router]);
-
   return (
-  <div className="flex h-screen items-center justify-center text-white">
-    Redirecting...
-  </div>
-);
+   <>
+   <LoadingSpinner/>
+   </>
+  ) 
 ; 
 }

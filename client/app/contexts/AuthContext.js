@@ -2,6 +2,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { api } from '@/app/lib/api';
+import LoadingSpinner from '../components/auth/LoadingSpinner';
 
 const AuthContext = createContext();
 
@@ -11,7 +12,6 @@ export function AuthProvider({ children }) {
   const router = useRouter();
   const pathname = usePathname();
 
-  // Load user from sessionStorage on initial render
   useEffect(() => {
     const loadUser = async () => {
       try {
@@ -20,8 +20,6 @@ export function AuthProvider({ children }) {
 
         if (token && savedUser) {
           setUser(JSON.parse(savedUser));
-          // Optional: Verify token with backend
-          // await api.verifyToken(token);
         } else {
           setUser(null);
         }
@@ -38,7 +36,6 @@ export function AuthProvider({ children }) {
     loadUser();
   }, []);
 
-  // Handle route protection
   useEffect(() => {
     if (loading) return;
 
@@ -57,6 +54,9 @@ export function AuthProvider({ children }) {
     }
   }, [loading, pathname, router]);
 
+  console.log("AuthContext loaded with user:", user);
+  
+
   const login = async (credentials) => {
     try {
       const response = await api.login(credentials);
@@ -66,7 +66,6 @@ export function AuthProvider({ children }) {
       sessionStorage.setItem('user', JSON.stringify(userPayload));
       setUser(userPayload);
       
-      // Redirect after successful login
       router.replace('/chat');
       return { success: true };
     } catch (error) {
@@ -84,7 +83,6 @@ export function AuthProvider({ children }) {
       sessionStorage.setItem('user', JSON.stringify(userPayload));
       setUser(userPayload);
       
-      // Redirect after successful signup
       router.replace('/chat');
       return { success: true };
     } catch (error) {
@@ -97,9 +95,15 @@ export function AuthProvider({ children }) {
     sessionStorage.removeItem('token');
     sessionStorage.removeItem('user');
     setUser(null);
-    // Force a full page reload to clear any state
     window.location.href = '/auth';
   };
+
+
+  
+
+  if (loading) {
+      return <LoadingSpinner />;
+    }
 
   return (
     <AuthContext.Provider value={{ 

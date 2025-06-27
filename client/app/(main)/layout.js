@@ -5,31 +5,17 @@ import { useAuth } from '@/app/contexts/AuthContext';
 import NewRoomModal from '../components/newRoomModal';
 import FloatingBackground from '../components/FloatingBackground';
 import Logo from '../components/Logo';
-import ProtectedRoute from '../components/auth/ProtectedRoute';
+import LoadingSpinner from '../components/auth/LoadingSpinner';
 export default function MainLayout({ children }) {
   const { user, loading, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [showNewRoom, setShowNewRoom] = useState(false);
   
-  const AUTH_PATH = process.env.NEXT_PUBLIC_AUTH_PATH || '/auth';
-  const ready = !loading && !!user;
-  
-  useEffect(() => {
-    if (!loading) {
-      if (!user && pathname !== AUTH_PATH) {
-        router.push(AUTH_PATH);
-      }
-    }
-  }, [loading, user, pathname, router, AUTH_PATH]);
-
-  if (loading || !ready) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <p className="text-white">Loading...</p>
-      </div>
-    );
+  if (loading || !user) {
+    return <LoadingSpinner />;
   }
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-red-900 to-slate-700">
@@ -38,7 +24,7 @@ export default function MainLayout({ children }) {
       
       <div className="fixed left-0 top-0 h-full w-20 bg-slate-800/80 backdrop-blur-xs border-r border-slate-700/50 flex flex-col items-center py-6 z-10">
         
-<div className="mb-8">
+<div className="mb-8 cursor-pointer">
           <Logo className="w-12 h-12" />
         </div>
 
@@ -67,9 +53,7 @@ export default function MainLayout({ children }) {
       </div>
 
       <main className="ml-20 h-full">
-        <ProtectedRoute>
         {children}
-        </ProtectedRoute>
       </main>
     </div>
   );

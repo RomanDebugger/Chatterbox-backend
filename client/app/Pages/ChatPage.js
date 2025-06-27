@@ -23,6 +23,9 @@ export default function ChatPage() {
 
   const { rooms, loadRooms, createNewRoomWithUser } = useRooms(user);
 
+  console.log("okokok", rooms, room, messages, typingUsers);
+  
+
   useEffect(() => {
     if (!loading && !user) {
       router.push('/auth');

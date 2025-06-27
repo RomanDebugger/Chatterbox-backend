@@ -3,6 +3,7 @@ import { useAuth } from '@/app/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import AuthPage from '@/app/Pages/AuthPage';
+import LoadingSpinner from '../components/auth/LoadingSpinner';
 
 export default function Auth() {
   const { user, isLoading } = useAuth();
@@ -15,7 +16,7 @@ export default function Auth() {
   }, [user, isLoading, router]);
 
   if (isLoading || user) {
-    return null; 
+    return <LoadingSpinner />; 
   }
 
   return <AuthPage />;

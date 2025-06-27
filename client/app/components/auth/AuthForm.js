@@ -2,7 +2,7 @@
 export default function AuthForm({
   activeForm, loginData, signupData, setLoginData, setSignupData,
   handleSubmit, isLoading, primaryGradient, secondaryGradient
-}) {
+}) {  
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <input

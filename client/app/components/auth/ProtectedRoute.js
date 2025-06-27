@@ -1,25 +1,23 @@
 'use client';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
-import LoadingSpinner from './LoadingSpinner'; 
+import LoadingSpinner from './LoadingSpinner';
 
 export default function ProtectedRoute({ children }) {
-  const { user, isLoading } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
 
-  useEffect(() => {
-    if (!isLoading && !user) {
+    if (loading) {
+        return <LoadingSpinner />;
+    }
+    if (typeof window === 'undefined') {
+        return <LoadingSpinner/>; 
+    }
+  if (!user) {
+    if (typeof window !== 'undefined') {
       router.replace('/auth');
     }
-  }, [user, isLoading, router]);
-
-  if (isLoading) {
-    return <LoadingSpinner />;
-  }
-
-  if (!user) {
-    return null; 
+    return <LoadingSpinner/>;
   }
 
   return children;

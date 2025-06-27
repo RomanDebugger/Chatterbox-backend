@@ -53,7 +53,7 @@ socketInit(io);
 //Rate limiting
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10, 
+  max: 100, 
   message: ERRORS.TOO_MANY_REQUESTS.message
 });
 
