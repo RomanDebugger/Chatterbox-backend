@@ -18,7 +18,6 @@ export const socketInit = (io) => {
       console.error(`Failed to fetch user info for ${socket.userId}:`, err);
       socket.username = 'Unknown User';
 
-      // Optionally notify client about degraded session
       emitSocketError(socket, {
         code: 500,
         message: 'User info could not be loaded. Some features may not work properly.'
@@ -28,7 +27,6 @@ export const socketInit = (io) => {
     socket.join(socket.userId);
     console.log(`${socket.userId} joined personal room`);
 
-    // Initialize all handlers
     setupRoomHandlers(io, socket);
     setupMessageHandlers(io, socket);
     setupTypingHandlers(io, socket);

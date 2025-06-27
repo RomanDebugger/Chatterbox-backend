@@ -22,8 +22,6 @@ export default function ChatPage() {
   } = useRoom(activeRoom);
 
   const { rooms, loadRooms, createNewRoomWithUser } = useRooms(user);
-
-  console.log("okokok", rooms, room, messages, typingUsers);
   
 
   useEffect(() => {
@@ -109,7 +107,7 @@ export default function ChatPage() {
                   className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${isSystem
                     ? 'bg-slate-600 text-white'
                     : isMine
-                    ? 'bg-gradient-to-r from-amber-400 to-rose-400 text-white'
+                    ? 'bg-gradient-to-r from-amber-400 to-rose-400 text-black'
                     : 'bg-slate-700/50 text-white'
                     }`}
                 >

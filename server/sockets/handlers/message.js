@@ -47,10 +47,13 @@ export const setupMessageHandlers = (io, socket) => {
         .populate('sender', 'username')
         .lean();
 
-      io.to(roomId).emit('receive-message', {
-        ...populatedMsg,
-        room: roomId
+      room.participants.forEach(pId => {
+      io.to(pId.toString()).emit('receive-message', {
+      ...populatedMsg,
+      room: roomId
       });
+  });
+      
 
     } catch (err) {
       console.error('Error sending message:', err);

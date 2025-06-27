@@ -2,11 +2,14 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { initializeSocket, destroySocket } from '@/app/lib/socket';
 import { useAuth } from './AuthContext';
+import { useNotification } from './NotificationContext';
+import { socketEvents } from '@/app/lib/socket';
 
 const SocketContext = createContext();
 
 export const SocketProvider = ({ children }) => {
   const { user } = useAuth();
+  const { notify } = useNotification();
   const [socket, setSocket] = useState(null);
   const [connected, setConnected] = useState(false);
 
@@ -36,6 +39,26 @@ export const SocketProvider = ({ children }) => {
       destroySocket();
     };
   }, [user]);
+
+  useEffect(() => {
+    if (!socket || !user) return;
+
+    const handleReceiveMessage = (message) => {
+      if (message.sender?._id !== user._id) {
+        notify({
+          title: `Message from ${message.sender?.username || 'Someone'}`,
+          body: message.content,
+          playSound: true,
+        });
+      }
+    };
+
+    socket.on(socketEvents.RECEIVE_MESSAGE, handleReceiveMessage);
+
+    return () => {
+      socket.off(socketEvents.RECEIVE_MESSAGE, handleReceiveMessage);
+    };
+  }, [socket, user, notify]); 
 
   const emit = useCallback((event, data, ack) => {
     if (socket) socket.emit(event, data, ack);

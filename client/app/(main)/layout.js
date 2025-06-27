@@ -1,5 +1,5 @@
 'use client';
-import { useEffect,useState } from 'react';
+import { useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/app/contexts/AuthContext';
 import NewRoomModal from '../components/newRoomModal';
@@ -15,7 +15,6 @@ export default function MainLayout({ children }) {
   if (loading || !user) {
     return <LoadingSpinner />;
   }
-
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-red-900 to-slate-700">
