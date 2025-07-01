@@ -64,32 +64,24 @@ export const setupMessageHandlers = (io, socket) => {
     }
   });
 
-  socket.on('message-delivered', async ({ roomId, messageId }) => {
-    if (!roomId || !messageId) {
-      return emitSocketError(socket, { code: 400, message: 'Room ID and message ID required' });
+  socket.on('message-delivered', async ({ roomId, messageIds }) => {
+    if (!roomId || !Array.isArray(messageIds) || messageIds.length === 0) {
+      return emitSocketError(socket, { code: 400, message: 'Room ID and message IDs required' });
     }
 
     try {
-      const message = await Message.findByIdAndUpdate(
-        messageId,
-        { $addToSet: { deliveredTo: socket.userId } },
-        { new: true }
+      await Message.updateMany(
+        { _id: { $in: messageIds } },
+        { $addToSet: { deliveredTo: socket.userId } }
       );
 
-      if (!message) {
-        return emitSocketError(socket, {
-          code: 404,
-          message: 'Message not found for delivery'
-        });
-      }
-
       io.to(roomId).emit('message-delivered', {
-        messageId,
+        messageIds,
         userId: socket.userId
       });
 
     } catch (err) {
-      console.error('Error marking message delivered:', err);
+      console.error('Error marking delivered:', err);
       emitSocketError(socket, {
         code: 500,
         message: 'Internal server error marking delivered'
@@ -97,36 +89,30 @@ export const setupMessageHandlers = (io, socket) => {
     }
   });
 
-  socket.on('message-seen', async ({ roomId, messageId }) => {
-    if (!roomId || !messageId) {
-      return emitSocketError(socket, { code: 400, message: 'Room ID and message ID required' });
+
+  socket.on('message-seen', async ({ roomId, messageIds }) => {
+    if (!roomId || !Array.isArray(messageIds) || messageIds.length === 0) {
+      return emitSocketError(socket, { code: 400, message: 'Room ID and message IDs required' });
     }
 
     try {
-      const message = await Message.findByIdAndUpdate(
-        messageId,
-        { $addToSet: { seenBy: socket.userId } },
-        { new: true }
+      await Message.updateMany(
+        { _id: { $in: messageIds } },
+        { $addToSet: { seenBy: socket.userId } }
       );
 
-      if (!message) {
-        return emitSocketError(socket, {
-          code: 404,
-          message: 'Message not found for seen'
-        });
-      }
-
       io.to(roomId).emit('message-seen', {
-        messageId,
+        messageIds,
         userId: socket.userId
       });
 
     } catch (err) {
-      console.error('Error marking message seen:', err);
+      console.error('Error marking seen:', err);
       emitSocketError(socket, {
         code: 500,
         message: 'Internal server error marking seen'
       });
     }
   });
+
 };
