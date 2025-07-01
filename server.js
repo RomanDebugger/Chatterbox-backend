@@ -43,7 +43,7 @@ app.use(morgan('dev'));
 //sockets
 const io = new Server(server, {
   cors: {
-    origin: ['http://localhost:3000','chatterbox-green.vercel.app'],
+    origin: ['http://localhost:3000','https://chatterbox-green.vercel.app'],
     credentials: true,
   }
 });
