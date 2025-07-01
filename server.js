@@ -32,7 +32,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 app.use(cors({
-    origin: 'http://localhost:3000',
+    origin: ['http://localhost:3000','chatterbox-green.vercel.app'],
     credentials: true,
 }));
 app.use(cookieParser());
@@ -43,7 +43,7 @@ app.use(morgan('dev'));
 //sockets
 const io = new Server(server, {
   cors: {
-    origin: 'http://localhost:3000',
+    origin: ['http://localhost:3000','chatterbox-green.vercel.app'],
     credentials: true,
   }
 });
