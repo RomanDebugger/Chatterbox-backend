@@ -8,9 +8,7 @@ import User from '../models/Users.js';
 export const socketInit = (io) => {
   io.use(socketAuthMiddleware);
 
-  io.on('connection', async (socket) => {
-    console.log(`Socket connected: ${socket.userId} (${socket.id})`);
-
+  io.on('connection', async (socket) => { 
     try {
       const user = await User.findById(socket.userId).select('username');
       socket.username = user?.username || 'Unknown User';
@@ -25,14 +23,11 @@ export const socketInit = (io) => {
     }
 
     socket.join(socket.userId);
-    console.log(`${socket.userId} joined personal room`);
 
     setupRoomHandlers(io, socket);
     setupMessageHandlers(io, socket);
     setupTypingHandlers(io, socket);
 
-    socket.on('disconnect', () => {
-      console.log(`Disconnected: ${socket.userId}`);
-    });
+    socket.on('disconnect');
   });
 };

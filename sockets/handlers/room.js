@@ -80,7 +80,6 @@ export const setupRoomHandlers = (io, socket) => {
       }
 
       if (socket.rooms.has(roomId)) {
-        console.log(`User ${socket.userId} already in room ${roomId}`);
         return;
       }
 
@@ -126,6 +125,5 @@ export const setupRoomHandlers = (io, socket) => {
       return;
     }
     socket.leave(roomId);
-    console.log(`User ${socket.userId} left room ${roomId}`);
   });
 };

@@ -1,4 +1,3 @@
-// utils/errors.js
 export const ERRORS = {
   INVALID_CREDENTIALS: { code: 401, message: 'Invalid credentials' },
   UNAUTHORIZED: { code: 401, message: 'Missing or invalid authorization header' },

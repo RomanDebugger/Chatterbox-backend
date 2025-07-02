@@ -1,4 +1,3 @@
-// utils/socketError.js
 export const emitSocketError = (socketOrCb, errorObj) => {
   const payload = {
     success: false,
