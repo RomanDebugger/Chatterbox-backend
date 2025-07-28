@@ -25,14 +25,19 @@ Key Features:
 
 ## Folder Structure
 
-📁 controllers/
-📁 middleware/
-📁 models/
-📁 routes/
-📁 utils/
-📁 sockets/ # (your socket handlers here)
-📄 server.js # Entry point
-📄 config.js # Environment configs
+```
+
+📁 controllers/      → Route logic and business operations
+📁 middleware/       → Auth, error handling, etc.  
+📁 models/           → Mongoose schemas  
+📁 routes/           → Express routes  
+📁 utils/            → Utility functions, error enums  
+📁 sockets/          → Socket.IO event handlers  
+
+📄 server.js         → Entry point  
+📄 config.js         → Environment & configuration
+
+```
 
 > Modular and scalable — each layer handles a specific concern: routing, business logic, middleware, etc.
 
